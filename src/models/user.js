@@ -9,8 +9,12 @@ class User extends Model {
         console.log(user);
 
         const token = jwt.sign({ username: user.username.toString() }, process.env.KEY);
-        user.tokens.push(token);
-        await user.save({ fields: ['tokens'] });
+
+        await User.update({ tokens: [...user.tokens, token] }, {
+            where: {
+                username: user.username,
+            },
+        });
         return token;
     }
 
@@ -22,6 +26,23 @@ class User extends Model {
             avatar: user.avatar,
             bio: user.bio,
         }
+    }
+
+    static async findByCredentials (username, password) {
+        const user = await User.findOne({ where: {username} });
+
+        if (!user) {
+            throw new Error();
+        }
+
+        const pass = user.password;
+        console.log(pass);
+
+        if (pass !== password) {
+            throw new Error('Unable to login');
+        }
+
+        return user;
     }
 }
 
@@ -45,6 +66,7 @@ User.init({
     },
     bio: {
         type: DataTypes.STRING,
+        defaultValue: '',
     },
     tokens: {
         type: DataTypes.ARRAY(DataTypes.STRING),
